@@ -7,7 +7,7 @@ const run = (cmd) => {
         if (err) {
             console.error(err);
         } else {
-            console.log({dir: dir, stdout: stdout, stderr: stderr});
+            console.log({cmd: cmd, stdout: stdout, stderr: stderr});
         }
     });
 }
