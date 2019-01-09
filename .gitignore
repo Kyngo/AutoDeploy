@@ -1,4 +1,4 @@
 node_modules/
-config.json
+settings/config.json
 postinstall.sh
 postinstall.cmd

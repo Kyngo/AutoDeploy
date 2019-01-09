@@ -14,6 +14,7 @@ const run = (cmd) => {
 
 const postInstall = (dir) => {
     let suffix = null;
+    console.log(dir)
     if (process.platform === "win32") {
         suffix = ".cmd";
     } else {

@@ -1,11 +1,3 @@
-/**
- * GIT DEPLOYER SCRIPT BY KYNGO
- * Copyright (c) 2018
- * https://kyngo.es
- * https://github.com/kyngo
- * https://bitbucket.org/kyngo
- */
-
 // system libs
 const fs = require("fs");
 const { exec } = require('child_process');
@@ -18,19 +10,22 @@ const argv = require('minimist')(process.argv.slice(2));
 const postInstall = require("./postinstall");
 
 // configurations logic
-if (!fs.existsSync("./config.json") || argv.hasOwnProperty("reconfigure")) {
+if (!fs.existsSync("./settings/config.json") || argv.hasOwnProperty("reconfigure")) {
     console.log("Generating configuration file...");
     const config = {
         port: 3000,
         secret: sha256(moment().format("YYYY-MM-DDTHH:mm:SSZ")),
-        directories: [__dirname]
+        directories: [__dirname.replace(/src$/g, "")]
+    };
+    if (!fs.existsSync("./settings/")) {
+        fs.mkdirSync("./settings");
     }
-    fs.writeFileSync("config.json", JSON.stringify(config, null, 4));
+    fs.writeFileSync("./settings/config.json", JSON.stringify(config, null, 4));
     console.log("\nSucessfully saved configuration file! New secret is: \n" + config.secret + "\nDO NOT SHARE WITH ANYONE!\n");
     console.log("If you don't want this deployment system to auto-update, remove it from the directories array in the JSON file!")
 }
 
-const config = JSON.parse(fs.readFileSync("./config.json"));
+const config = JSON.parse(fs.readFileSync("./settings/config.json"));
 
 // user checkup
 if (process.platform === "win32") {
