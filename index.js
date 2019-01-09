@@ -3,6 +3,7 @@
  * Copyright (c) 2018
  * https://kyngo.es
  * https://github.com/kyngo
+ * https://bitbucket.org/kyngo
  */
 
 // system libs
@@ -24,15 +25,20 @@ if (!fs.existsSync("./config.json") || argv.hasOwnProperty("reconfigure")) {
     }
     fs.writeFileSync("config.json", JSON.stringify(config, null, 4));
     console.log("\nSucessfully saved configuration file! New secret is: \n" + config.secret + "\nDO NOT SHARE WITH ANYONE!\n");
+    console.log("If you don't want this deployment system to auto-update, remove it from the directories array in the JSON file!")
 }
 
 const config = JSON.parse(fs.readFileSync("./config.json"));
 
 // user checkup
-if (process.getuid() === 0) {
-    console.log("WARNING: Script run as root! This could be dangerous to the system!");
+if (process.platform === "win32") {
+    console.log("Could not determine user, as we're running on Windows. Please run this as administrator!");
 } else {
-    console.log("Deployment server is not run as root!\nCheck which user is running it and if it has permissions to pull!\nUID " + process.getuid());
+    if (process.getuid() === 0) {
+        console.log("WARNING: Script run as root! This could be dangerous to the system!");
+    } else {
+        console.log("Deployment server is not run as root!\nCheck which user is running it and if it has permissions to pull!\nUID " + process.getuid());
+    }
 }
 
 // web server logic
@@ -55,40 +61,46 @@ app.all("*", (req, res, next) => {
 // deploy function
 app.get("/deploy", (req, res) => {
     let results = [];
-    config.directories.forEach(idx => {
-        runCommand("cd " + idx + " && git pull")
-        .then(commandResult => {
-            results.push(commandResult);
-            if (fs.existsSync(idx + "/postinstall.sh")) {
-                runCommand("cd " + idx + " && chmod +x postinstall.sh && ./postinstall.sh")
-                .then(secondCommandResult => console.log("Post-Install script says:\n" + JSON.stringify(secondCommandResult, null, 4)))
-                .catch(secondCommandCrash => console.error("Post-Install script crashed saying:\n" + secondCommandCrash));
-            }
-            if (results.length === config.directories.length) {
-                res.json(results);
-            }   
-        }).catch(commandCrash => {
-            results.push("ERR:" + commandCrash);
-            if (results.length === config.directories.length) {
-                res.json(results);
-            }
+    if (config.directories.length > 0) {
+        config.directories.forEach(idx => {
+            runCommand("cd " + idx + " && git pull", idx)
+            .then(commandResult => {
+                results.push(commandResult);
+                if (fs.existsSync(idx + "/postinstall.sh")) {
+                    runCommand("cd " + idx + " && chmod +x postinstall.sh && ./postinstall.sh")
+                    .then(secondCommandResult => console.log("Post-Install script says:\n" + JSON.stringify(secondCommandResult, null, 4)))
+                    .catch(secondCommandCrash => console.error("Post-Install script crashed saying:\n" + secondCommandCrash));
+                }
+                if (results.length === config.directories.length) {
+                    res.json(results);
+                }   
+            }).catch(commandCrash => {
+                results.push("ERR:" + commandCrash);
+                if (results.length === config.directories.length) {
+                    res.json(results);
+                }
+            })
         })
-    })
+    } else {
+        res.status(418);
+        res.json({error: "You can't run this without any repos configured!"})
+    }
 });
 
 app.all("*", (req, res) => {
-    res.send("404 Not Found");
+    res.status(404);
+    res.json({result: "404 Not Found"});
 })
 
 // process execution function
-const runCommand = (cmd) => {
+const runCommand = (cmd, dir) => {
     return new Promise((resolve, reject) => {
         exec(cmd, (err, stdout, stderr) => {
             console.log("Executed command: " + cmd);
             if (err) {
                 reject(err);
             } else {
-                resolve({stdout: stdout, stderr: stderr});
+                resolve({dir: dir, stdout: stdout, stderr: stderr});
             }
         });
     })
