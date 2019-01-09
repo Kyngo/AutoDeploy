@@ -14,6 +14,8 @@ const express = require("express");
 const sha256 = require("sha256");
 const moment = require("moment");
 const argv = require('minimist')(process.argv.slice(2));
+// own files
+const postInstall = require("./postinstall");
 
 // configurations logic
 if (!fs.existsSync("./config.json") || argv.hasOwnProperty("reconfigure")) {
@@ -66,11 +68,7 @@ app.get("/deploy", (req, res) => {
             runCommand("cd " + idx + " && git pull", idx)
             .then(commandResult => {
                 results.push(commandResult);
-                if (fs.existsSync(idx + "/postinstall.sh")) {
-                    runCommand("cd " + idx + " && chmod +x postinstall.sh && ./postinstall.sh")
-                    .then(secondCommandResult => console.log("Post-Install script says:\n" + JSON.stringify(secondCommandResult, null, 4)))
-                    .catch(secondCommandCrash => console.error("Post-Install script crashed saying:\n" + secondCommandCrash));
-                }
+                postInstall(idx);
                 if (results.length === config.directories.length) {
                     res.json(results);
                 }   
