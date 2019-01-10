@@ -1,67 +1,64 @@
-#!/bin/sh
-### BEGIN INIT INFO
-# Provides:          autodeploy
-# Required-Start:    $local_fs $network $named $time $syslog
-# Required-Stop:     $local_fs $network $named $time $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Description:       Automatic deployment system
-### END INIT INFO
+#!/bin/bash
+# autodeploy daemon
+# chkconfig: 345 20 80
+# description: autodeploy daemon
+# processname: autodeploy
 
-SCRIPT=node /opt/AutoDeploy/main.js
-RUNAS=root
+DAEMON_PATH="/opt/AutoDeploy/"
 
-PIDFILE=/var/run/autodeploy.pid
-LOGFILE=/var/log/autodeploy.log
+DAEMON="node"
+DAEMONOPTS="main.js"
 
-start() {
-  if [ -f /var/run/$PIDNAME ] && kill -0 $(cat /var/run/$PIDNAME); then
-    echo 'Service already running' >&2
-    return 1
-  fi
-  echo 'Starting service…' >&2
-  local CMD="$SCRIPT &> \"$LOGFILE\" & echo \$!"
-  su -c "$CMD" $RUNAS > "$PIDFILE"
-  echo 'Service started' >&2
-}
-
-stop() {
-  if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE"); then
-    echo 'Service not running' >&2
-    return 1
-  fi
-  echo 'Stopping service…' >&2
-  kill -15 $(cat "$PIDFILE") && rm -f "$PIDFILE"
-  echo 'Service stopped' >&2
-}
-
-uninstall() {
-  echo -n "Are you really sure you want to uninstall this service? That cannot be undone. [yes|No] "
-  local SURE
-  read SURE
-  if [ "$SURE" = "yes" ]; then
-    stop
-    rm -f "$PIDFILE"
-    echo "Notice: log file is not be removed: '$LOGFILE'" >&2
-    update-rc.d -f autodeploy remove
-    rm -fv "$0"
-  fi
-}
+NAME="AutoDeploy"
+DESC="AutoDeploy service"
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
 
 case "$1" in
-  start)
-    start
-    ;;
-  stop)
-    stop
-    ;;
-  uninstall)
-    uninstall
-    ;;
-  retart)
-    stop
-    start
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart|uninstall}"
+start)
+	printf "%-50s" "starting $NAME..."
+	cd $DAEMON_PATH
+	PID=`$DAEMON $DAEMONOPTS > /var/log/autodeploy.log 2>&1 & echo $!`
+	#echo "Guardando PID" $PID " en " $PIDFILE
+        if [ -z $PID ]; then
+            printf "%s\n" "failed"
+        else
+            echo $PID > $PIDFILE
+            printf "%s\n" "started"
+        fi
+;;
+status)
+        printf "%-50s" "Checking $NAME..."
+        if [ -f $PIDFILE ]; then
+            PID=`cat $PIDFILE`
+            if [ -z "`ps axf | grep ${PID} | grep -v grep`" ]; then
+                printf "%s\n" "PID file exists, process doesn't"
+            else
+                echo "Working!"
+            fi
+        else
+            printf "%s\n" "Service is stopped"
+        fi
+;;
+stop)
+        printf "%-50s" "Stopping $NAME"
+            PID=`cat $PIDFILE`
+            cd $DAEMON_PATH
+        if [ -f $PIDFILE ]; then
+            kill -HUP $PID
+            printf "%s\n" "Stopped"
+            rm -f $PIDFILE
+        else
+            printf "%s\n" "Could not find the PID file"
+        fi
+;;
+
+restart)
+  	$0 stop
+  	$0 start
+;;
+
+*)
+        echo "Usage: $0 {status|start|stop|restart}"
+        exit 1
 esac
