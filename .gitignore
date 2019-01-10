@@ -2,3 +2,4 @@ node_modules/
 settings/config.json
 postinstall.sh
 postinstall.cmd
+package-lock.json
