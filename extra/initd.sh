@@ -11,8 +11,8 @@
 SCRIPT=node /opt/AutoDeploy/main.js
 RUNAS=root
 
-PIDFILE=/var/run/<NAME>.pid
-LOGFILE=/var/log/<NAME>.log
+PIDFILE=/var/run/autodeploy.pid
+LOGFILE=/var/log/autodeploy.log
 
 start() {
   if [ -f /var/run/$PIDNAME ] && kill -0 $(cat /var/run/$PIDNAME); then
@@ -43,7 +43,7 @@ uninstall() {
     stop
     rm -f "$PIDFILE"
     echo "Notice: log file is not be removed: '$LOGFILE'" >&2
-    update-rc.d -f <NAME> remove
+    update-rc.d -f autodeploy remove
     rm -fv "$0"
   fi
 }
