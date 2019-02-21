@@ -1,0 +1,12 @@
+[Unit]
+Description=AutoDeploy Service
+After=network.target
+
+[Service]
+PrivateTmp=true
+Type=forking
+PIDFile=/var/run/autodeploy-%i.pid
+ExecStart=node /opt/AutoDeploy/main.js > /var/log/autodeploy.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

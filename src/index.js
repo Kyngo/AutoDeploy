@@ -56,7 +56,7 @@ app.all("*", (req, res, next) => {
 });
 
 // deploy function
-app.get("/deploy", (req, res) => {
+app.all("/deploy", (req, res) => {
     let results = [];
     if (config.directories.length > 0) {
         config.directories.forEach(idx => {
